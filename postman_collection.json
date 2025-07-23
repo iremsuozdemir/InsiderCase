@@ -1,0 +1,171 @@
+{
+	"info": {
+		"_postman_id": "football-league-api",
+		"name": "Football League API",
+		"description": "API endpoints for the Football League Simulator",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Health Check",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/health",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"health"
+					]
+				},
+				"description": "Check if the server is running"
+			},
+			"response": []
+		},
+		{
+			"name": "Create League",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "[\n  {\n    \"name\": \"Arsenal\",\n    \"strength\": 90\n  },\n  {\n    \"name\": \"Chelsea\",\n    \"strength\": 85\n  },\n  {\n    \"name\": \"Liverpool\",\n    \"strength\": 88\n  },\n  {\n    \"name\": \"Manchester City\",\n    \"strength\": 92\n  },\n  {\n    \"name\": \"Manchester United\",\n    \"strength\": 82\n  },\n  {\n    \"name\": \"Tottenham\",\n    \"strength\": 80\n  }\n]"
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/league",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"league"
+					]
+				},
+				"description": "Create a new league with teams"
+			},
+			"response": []
+		},
+		{
+			"name": "Play Week",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/api/league/play-week",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"league",
+						"play-week"
+					]
+				},
+				"description": "Play the next week of matches"
+			},
+			"response": []
+		},
+		{
+			"name": "Get League Table",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/api/league/table",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"league",
+						"table"
+					]
+				},
+				"description": "Get the current league standings"
+			},
+			"response": []
+		},
+		{
+			"name": "Get All Matches",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/api/league/matches",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"league",
+						"matches"
+					]
+				},
+				"description": "Get all matches in the league"
+			},
+			"response": []
+		},
+		{
+			"name": "Get Week Matches",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/api/league/matches/1",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"league",
+						"matches",
+						"1"
+					]
+				},
+				"description": "Get matches for a specific week (replace '1' with week number)"
+			},
+			"response": []
+		},
+		{
+			"name": "Get League Status",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/api/league/status",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"league",
+						"status"
+					]
+				},
+				"description": "Get current league status and progress"
+			},
+			"response": []
+		}
+	]
+} 
