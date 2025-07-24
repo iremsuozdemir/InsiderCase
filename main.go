@@ -27,14 +27,7 @@ func main() {
 	// Start server
 	port := ":8080"
 	fmt.Println(" Football League API Server starting on port %s\n", port)
-	fmt.Println(" Available endpoints:")
-	fmt.Println("  POST   /api/league              - Create a new league")
-	fmt.Println("  POST   /api/league/play-week    - Play next week")
-	fmt.Println("  GET    /api/league/table        - Get league standings")
-	fmt.Println("  GET    /api/league/matches      - Get all match results")
-	fmt.Println("  GET    /api/league/matches/week/{week} - Get matches for specific week")
-	fmt.Println("  GET    /api/league/status       - Get league status")
-	fmt.Println("  GET    /api/health              - Health check")
+
 	
 	log.Fatal(http.ListenAndServe(port, nil))
 }
