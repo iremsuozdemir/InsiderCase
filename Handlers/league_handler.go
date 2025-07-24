@@ -345,44 +345,17 @@ func (h *LeagueHandler) GetTeams(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	// Set CORS headers
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(teams)
-}
-
-// AddTeam - POST /api/teams
-func (h *LeagueHandler) AddTeam(w http.ResponseWriter, r *http.Request) {
-	var teamRequest struct {
-		Name     string `json:"name"`
-		Strength int    `json:"strength"`
-	}
-	
-	if err := json.NewDecoder(r.Body).Decode(&teamRequest); err != nil {
-		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
+	// Get team count
+	count, err := h.repo.GetTeamCount()
+	if err != nil {
+		http.Error(w, "Failed to get team count", http.StatusInternalServerError)
 		return
 	}
 	
-	if teamRequest.Name == "" {
-		http.Error(w, "Team name is required", http.StatusBadRequest)
-		return
-	}
-	
-	if teamRequest.Strength < 1 || teamRequest.Strength > 100 {
-		http.Error(w, "Strength must be between 1 and 100", http.StatusBadRequest)
-		return
-	}
-	
-	if err := h.repo.AddTeam(teamRequest.Name, teamRequest.Strength); err != nil {
-		http.Error(w, "Failed to add team: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-	
-	response := map[string]interface{}{
-		"status":  "Team added successfully",
-		"message": "Team " + teamRequest.Name + " has been added",
+	response := models.TeamsResponse{
+		Teams:   teams,
+		Count:   count,
+		Message: "Teams retrieved successfully",
 	}
 	
 	// Set CORS headers
@@ -392,6 +365,236 @@ func (h *LeagueHandler) AddTeam(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
+
+// AddTeam - POST /api/teams
+func (h *LeagueHandler) AddTeam(w http.ResponseWriter, r *http.Request) {
+	var teamRequest models.AddTeamRequest
+	
+	if err := json.NewDecoder(r.Body).Decode(&teamRequest); err != nil {
+		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
+		return
+	}
+	
+	// Validate team name
+	if teamRequest.Name == "" {
+		http.Error(w, "Team name is required", http.StatusBadRequest)
+		return
+	}
+	
+	// Check name length
+	if len(teamRequest.Name) > 50 {
+		http.Error(w, "Team name must be 50 characters or less", http.StatusBadRequest)
+		return
+	}
+	
+	// Validate strength
+	if teamRequest.Strength < 1 || teamRequest.Strength > 100 {
+		http.Error(w, "Strength must be between 1 and 100", http.StatusBadRequest)
+		return
+	}
+	
+	// Check if team already exists
+	exists, err := h.repo.TeamExists(teamRequest.Name)
+	if err != nil {
+		http.Error(w, "Failed to check team existence", http.StatusInternalServerError)
+		return
+	}
+	
+	if exists {
+		http.Error(w, "Team with this name already exists", http.StatusConflict)
+		return
+	}
+	
+	// Add team and get the created team with ID
+	team, err := h.repo.AddTeamWithID(teamRequest.Name, teamRequest.Strength)
+	if err != nil {
+		http.Error(w, "Failed to add team: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	
+	response := models.TeamResponse{
+		ID:       team.ID,
+		Name:     team.Name,
+		Strength: team.Strength,
+		Message:  "Team added successfully",
+	}
+	
+	// Set CORS headers
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(response)
+}
+
+// GetTeam - GET /api/teams/{id}
+func (h *LeagueHandler) GetTeam(w http.ResponseWriter, r *http.Request) {
+	// Extract team ID from URL path: /api/teams/1
+	path := strings.TrimPrefix(r.URL.Path, "/api/teams")
+	// Remove leading slash if present
+	path = strings.TrimPrefix(path, "/")
+	idStr := strings.Split(path, "/")[0]
+	
+	if idStr == "" {
+		http.Error(w, "Team ID required", http.StatusBadRequest)
+		return
+	}
+	
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid team ID", http.StatusBadRequest)
+		return
+	}
+	
+	team, err := h.repo.GetTeamByID(id)
+	if err != nil {
+		http.Error(w, "Team not found", http.StatusNotFound)
+		return
+	}
+	
+	// Set CORS headers
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(team)
+}
+
+// UpdateTeam - PUT /api/teams/{id}
+func (h *LeagueHandler) UpdateTeam(w http.ResponseWriter, r *http.Request) {
+	// Extract team ID from URL path: /api/teams/1
+	path := strings.TrimPrefix(r.URL.Path, "/api/teams")
+	// Remove leading slash if present
+	path = strings.TrimPrefix(path, "/")
+	idStr := strings.Split(path, "/")[0]
+	
+	if idStr == "" {
+		http.Error(w, "Team ID required", http.StatusBadRequest)
+		return
+	}
+	
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid team ID", http.StatusBadRequest)
+		return
+	}
+	
+	var teamRequest models.UpdateTeamRequest
+	
+	if err := json.NewDecoder(r.Body).Decode(&teamRequest); err != nil {
+		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
+		return
+	}
+	
+	// Validate team name
+	if teamRequest.Name == "" {
+		http.Error(w, "Team name is required", http.StatusBadRequest)
+		return
+	}
+	
+	// Check name length
+	if len(teamRequest.Name) > 50 {
+		http.Error(w, "Team name must be 50 characters or less", http.StatusBadRequest)
+		return
+	}
+	
+	// Validate strength
+	if teamRequest.Strength < 1 || teamRequest.Strength > 100 {
+		http.Error(w, "Strength must be between 1 and 100", http.StatusBadRequest)
+		return
+	}
+	
+	// Check if team exists
+	existingTeam, err := h.repo.GetTeamByID(id)
+	if err != nil {
+		http.Error(w, "Team not found", http.StatusNotFound)
+		return
+	}
+	
+	// Check if new name conflicts with another team (if name is being changed)
+	if existingTeam.Name != teamRequest.Name {
+		exists, err := h.repo.TeamExists(teamRequest.Name)
+		if err != nil {
+			http.Error(w, "Failed to check team existence", http.StatusInternalServerError)
+			return
+		}
+		
+		if exists {
+			http.Error(w, "Team with this name already exists", http.StatusConflict)
+			return
+		}
+	}
+	
+	// Update team
+	err = h.repo.UpdateTeam(id, teamRequest.Name, teamRequest.Strength)
+	if err != nil {
+		http.Error(w, "Failed to update team: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	
+	response := models.TeamResponse{
+		ID:       id,
+		Name:     teamRequest.Name,
+		Strength: teamRequest.Strength,
+		Message:  "Team updated successfully",
+	}
+	
+	// Set CORS headers
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// DeleteTeam - DELETE /api/teams/{id}
+func (h *LeagueHandler) DeleteTeam(w http.ResponseWriter, r *http.Request) {
+	// Extract team ID from URL path: /api/teams/1
+	path := strings.TrimPrefix(r.URL.Path, "/api/teams")
+	// Remove leading slash if present
+	path = strings.TrimPrefix(path, "/")
+	idStr := strings.Split(path, "/")[0]
+	
+	if idStr == "" {
+		http.Error(w, "Team ID required", http.StatusBadRequest)
+		return
+	}
+	
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid team ID", http.StatusBadRequest)
+		return
+	}
+	
+	// Check if team exists
+	_, err = h.repo.GetTeamByID(id)
+	if err != nil {
+		http.Error(w, "Team not found", http.StatusNotFound)
+		return
+	}
+	
+	// Delete team
+	err = h.repo.DeleteTeam(id)
+	if err != nil {
+		http.Error(w, "Failed to delete team: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	
+	response := map[string]interface{}{
+		"status":  "Team deleted successfully",
+		"message": fmt.Sprintf("Team with ID %d has been deleted", id),
+	}
+	
+	// Set CORS headers
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+
 
 // GetMatchSchedule - GET /api/league/schedule
 func (h *LeagueHandler) GetMatchSchedule(w http.ResponseWriter, r *http.Request) {

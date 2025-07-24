@@ -104,70 +104,62 @@ func GenerateFixture(teams []models.Team) [][]models.Match {
 		return fixtures
 	}
 	
-	// Even number of teams - use the original logic
-	var workingTeams []models.Team
-	workingTeams = teams
+	// Even number of teams - use round-robin algorithm
+	// For even teams, we can use a simple round-robin schedule
+	// Each team plays every other team twice (home and away)
 	
-	// Create all possible matchups (each team vs each other twice)
-	var allMatchups [][]string
-	for i := 0; i < teamCount; i++ {
-		for j := i + 1; j < teamCount; j++ {
-			// First leg: team i home vs team j away
-			allMatchups = append(allMatchups, []string{workingTeams[i].Name, workingTeams[j].Name})
-			// Second leg: team j home vs team i away  
-			allMatchups = append(allMatchups, []string{workingTeams[j].Name, workingTeams[i].Name})
-		}
-	}
+	// Calculate total weeks needed
+	totalWeeks := teamCount * (teamCount - 1) / (teamCount / 2)
 	
-	// Now assign matchups to weeks ensuring no team plays twice in same week
-	weekNumber := 1
-	matchesPerWeek := teamCount / 2
-	
-	for len(allMatchups) > 0 {
-		var week []models.Match
+	// Create a round-robin schedule
+	for week := 1; week <= totalWeeks; week++ {
+		var weekMatches []models.Match
 		teamsUsedThisWeek := make(map[string]bool)
 		
-		// Try to fill this week with matches
-		for i := 0; i < len(allMatchups) && len(week) < matchesPerWeek; i++ {
-			homeTeam := allMatchups[i][0]
-			awayTeam := allMatchups[i][1]
-			
-			// Check if either team is already used this week
-			if !teamsUsedThisWeek[homeTeam] && !teamsUsedThisWeek[awayTeam] {
-				// Add this match to the week
+		// For even teams, we can schedule all teams in pairs
+		matchesThisWeek := 0
+		maxMatchesPerWeek := teamCount / 2
+		
+		// Create matches for this week
+		for i := 0; i < teamCount && matchesThisWeek < maxMatchesPerWeek; i++ {
+			for j := i + 1; j < teamCount && matchesThisWeek < maxMatchesPerWeek; j++ {
+				team1 := teams[i].Name
+				team2 := teams[j].Name
+				
+				// Skip if either team is already used this week
+				if teamsUsedThisWeek[team1] || teamsUsedThisWeek[team2] {
+					continue
+				}
+				
+				// Determine home/away based on week number for variety
+				var homeTeam, awayTeam string
+				if (week + i + j) % 2 == 0 {
+					homeTeam, awayTeam = team1, team2
+				} else {
+					homeTeam, awayTeam = team2, team1
+				}
+				
+				// Create match
 				match := models.Match{
 					HomeTeam: homeTeam,
 					AwayTeam: awayTeam,
-					Week:     weekNumber,
+					Week:     week,
 				}
-				week = append(week, match)
+				weekMatches = append(weekMatches, match)
 				teamsUsedThisWeek[homeTeam] = true
 				teamsUsedThisWeek[awayTeam] = true
-				
-				// Remove this matchup from the list
-				allMatchups = append(allMatchups[:i], allMatchups[i+1:]...)
-				i-- // Adjust index since we removed an element
+				matchesThisWeek++
 			}
 		}
 		
-		// Only add the week if it's complete
-		if len(week) == matchesPerWeek {
-			fixtures = append(fixtures, week)
-			weekNumber++
-		} else {
-			// If we can't complete a week, we have a problem with the algorithm
-			// This shouldn't happen with proper even number of teams
-			break
+		// Add week to fixtures if it has matches
+		if len(weekMatches) > 0 {
+			fixtures = append(fixtures, weekMatches)
 		}
 	}
 	
 	return fixtures
 }
-
-
-
-
-
 
 
 // ValidateWeek ensures that each week has the correct number of teams playing
@@ -190,35 +182,7 @@ func ValidateWeek(week []models.Match, totalTeams int) bool {
 }
 
 
-// CalculateTotalWeeks calculates the total number of weeks needed for a league
-func CalculateTotalWeeks(teamCount int) int {
-	if teamCount < 2 {
-		return 0
-	}
-	
-	// Handle odd number of teams
-	if teamCount%2 != 0 {
-		// For odd teams, we need to calculate weeks differently
-		// Each team needs to play every other team twice
-		// With odd teams, one team gets a bye each week
-		// Total matches = (n-1) * n (each team plays every other team twice)
-		// Matches per week = (n-1)/2 (one team gets bye)
-		totalMatches := teamCount * (teamCount - 1)
-		matchesPerWeek := (teamCount - 1) / 2
-		if matchesPerWeek == 0 {
-			matchesPerWeek = 1 // Ensure at least 1 match per week
-		}
-		return totalMatches / matchesPerWeek
-	}
-	
-	// Even number of teams - standard calculation
-	// Formula: n * (n-1) where n = number of teams
-	// Each team plays every other team twice (home and away)
-	totalMatches := teamCount * (teamCount - 1)
-	// N/2 matches per week (where N = number of teams)
-	matchesPerWeek := teamCount / 2
-	return totalMatches / matchesPerWeek
-}
+
 
 func NewGenerateLeague(teams []models.Team)*GenerateLeague {
 	engine := GenerateLeague{

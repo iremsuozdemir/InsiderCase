@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	handlers "insider-league/Handlers"
 	"net/http"
+	"strings"
 )
 
 func SetupRoutes() {
@@ -235,7 +236,7 @@ func SetupRoutes() {
 		}
 	})
 	
-	// Add team endpoint
+	// Team management endpoints (combined)
 	http.HandleFunc("/api/teams", func(w http.ResponseWriter, r *http.Request) {
 		// Set CORS headers
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -248,6 +249,27 @@ func SetupRoutes() {
 			return
 		}
 		
+
+		
+		// Check if this is an individual team operation (has ID in path)
+		path := strings.TrimPrefix(r.URL.Path, "/api/teams")
+		path = strings.TrimPrefix(path, "/")
+		if path != "" && !strings.Contains(path, "/") {
+			// This is an individual team operation
+			switch r.Method {
+			case http.MethodGet:
+				leagueHandler.GetTeam(w, r)
+			case http.MethodPut:
+				leagueHandler.UpdateTeam(w, r)
+			case http.MethodDelete:
+				leagueHandler.DeleteTeam(w, r)
+			default:
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
+			return
+		}
+		
+		// This is a general team operation
 		switch r.Method {
 		case http.MethodGet:
 			leagueHandler.GetTeams(w, r)
@@ -257,6 +279,8 @@ func SetupRoutes() {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
 	})
+	
+
 	
 	// Debug endpoint
 	http.HandleFunc("/api/debug", func(w http.ResponseWriter, r *http.Request) {

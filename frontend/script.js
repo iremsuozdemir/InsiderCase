@@ -20,6 +20,9 @@ class FootballLeagueApp {
         document.getElementById('nextWeekBtn').addEventListener('click', () => this.playNextWeek());
         document.getElementById('playAllBtn').addEventListener('click', () => this.playAllWeeks());
         document.getElementById('addTeamBtn').addEventListener('click', () => this.addTeam());
+
+        document.getElementById('loadTeamsBtn').addEventListener('click', () => this.loadTeams());
+        document.getElementById('clearTeamsBtn').addEventListener('click', () => this.clearTeams());
     }
 
     async initializeDatabase() {
@@ -109,29 +112,177 @@ class FootballLeagueApp {
     async loadTeams() {
         try {
             const response = await fetch(`${this.apiBase}/teams`);
-            if (response.ok) {
-                const teams = await response.json();
-                this.updateTeamsList(teams);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
+            const data = await response.json();
+            this.updateTeamsList(data.teams);
+            this.updateTeamCount(data.count);
         } catch (error) {
             console.error('Error loading teams:', error);
+            this.showMessage('Failed to load teams: ' + error.message, 'error');
         }
     }
 
     updateTeamsList(teams) {
-        const container = document.getElementById('teamsList');
+        const teamsList = document.getElementById('teamsList');
         
         if (!teams || teams.length === 0) {
-            container.innerHTML = '<div class="no-data">No teams available</div>';
+            teamsList.innerHTML = '<div class="no-data">No teams available</div>';
             return;
         }
-
-        container.innerHTML = teams.map(team => `
+        
+        teamsList.innerHTML = teams.map(team => `
             <div class="team-card">
                 <h3>${team.name}</h3>
-                <p>Strength: ${team.strength}</p>
+                <p><strong>ID:</strong> ${team.id}</p>
+                <p class="team-strength"><strong>Strength:</strong> ${team.strength}/100</p>
+                <div class="team-actions">
+                    <button class="btn btn-small btn-secondary edit-team-btn" data-team-id="${team.id}">Edit</button>
+                    <button class="btn btn-small btn-danger delete-team-btn" data-team-id="${team.id}">Delete</button>
+                </div>
             </div>
         `).join('');
+        
+        // Add event listeners to the new buttons
+        this.addTeamButtonListeners();
+    }
+
+    addTeamButtonListeners() {
+        // Add event listeners for edit buttons
+        document.querySelectorAll('.edit-team-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const teamId = parseInt(e.target.getAttribute('data-team-id'));
+                this.editTeam(teamId);
+            });
+        });
+        
+        // Add event listeners for delete buttons
+        document.querySelectorAll('.delete-team-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const teamId = parseInt(e.target.getAttribute('data-team-id'));
+                this.deleteTeam(teamId);
+            });
+        });
+    }
+
+    updateTeamCount(count) {
+        document.getElementById('teamCount').textContent = count;
+    }
+
+
+
+    async clearTeams() {
+        if (!confirm('Are you sure you want to clear all teams? This action cannot be undone.')) {
+            return;
+        }
+        
+        try {
+            this.updateStatus('Clearing all teams...');
+            this.showLoading('clearTeamsBtn');
+            
+            const response = await fetch(`${this.apiBase}/clear-teams`, {
+                method: 'DELETE'
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            this.updateStatus('All teams cleared successfully!');
+            this.showMessage('All teams have been removed from the database', 'success');
+            
+            // Clear teams list
+            this.updateTeamsList([]);
+            this.updateTeamCount(0);
+            
+        } catch (error) {
+            console.error('Error clearing teams:', error);
+            this.updateStatus('Failed to clear teams');
+            this.showMessage('Failed to clear teams: ' + error.message, 'error');
+        } finally {
+            this.hideLoading('clearTeamsBtn');
+        }
+    }
+
+    async editTeam(teamId) {
+        // For now, we'll show a simple prompt. In a real app, you'd have a modal
+        const newName = prompt('Enter new team name:');
+        if (!newName) return;
+        
+        const newStrength = prompt('Enter new team strength (1-100):');
+        if (!newStrength) return;
+        
+        const strength = parseInt(newStrength);
+        if (isNaN(strength) || strength < 1 || strength > 100) {
+            this.showMessage('Invalid strength value', 'error');
+            return;
+        }
+        
+        try {
+            this.updateStatus('Updating team...');
+            
+            const response = await fetch(`${this.apiBase}/teams/${teamId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: newName,
+                    strength: strength
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            this.updateStatus('Team updated successfully!');
+            this.showMessage(`Team ${newName} updated successfully!`, 'success');
+            
+            // Reload teams list
+            await this.loadTeams();
+            
+        } catch (error) {
+            console.error('Error updating team:', error);
+            this.updateStatus('Failed to update team');
+            this.showMessage('Failed to update team: ' + error.message, 'error');
+        }
+    }
+
+    async deleteTeam(teamId) {
+        if (!confirm('Are you sure you want to delete this team?')) {
+            return;
+        }
+        
+        try {
+            this.updateStatus('Deleting team...');
+            
+            const response = await fetch(`${this.apiBase}/teams/${teamId}`, {
+                method: 'DELETE'
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            this.updateStatus('Team deleted successfully!');
+            this.showMessage('Team deleted successfully!', 'success');
+            
+            // Reload teams list
+            await this.loadTeams();
+            
+        } catch (error) {
+            console.error('Error deleting team:', error);
+            this.updateStatus('Failed to delete team');
+            this.showMessage('Failed to delete team: ' + error.message, 'error');
+        }
     }
 
     async loadMatchSchedule() {
@@ -245,6 +396,10 @@ class FootballLeagueApp {
             const data = await response.json();
             this.isLeagueCreated = true;
             
+            // Extract total weeks from response
+            this.totalWeeks = data.total_weeks || 0;
+            this.currentWeek = data.current_week || 0;
+            
             this.updateStatus('League created successfully!');
             this.showMessage('League created successfully!', 'success');
             
@@ -323,8 +478,11 @@ class FootballLeagueApp {
 
             const data = await response.json();
             
+            // Extract current week from response
+            this.currentWeek = data.current_week || 0;
+            
             this.updateStatus('Week played successfully!');
-            this.showMessage(`Week ${this.currentWeek + 1} played successfully!`, 'success');
+            this.showMessage(`Week ${this.currentWeek} played successfully!`, 'success');
             
             // Refresh data
             await this.loadLeagueStatus();
@@ -361,6 +519,12 @@ class FootballLeagueApp {
 
             const data = await response.json();
             
+            // Extract current week from response (should be the final week)
+            if (data.matches_by_week) {
+                const weeks = Object.keys(data.matches_by_week).map(Number);
+                this.currentWeek = Math.max(...weeks);
+            }
+            
             this.updateStatus('All weeks played successfully!');
             this.showMessage('All remaining weeks played successfully!', 'success');
             
@@ -384,8 +548,10 @@ class FootballLeagueApp {
             const response = await fetch(`${this.apiBase}/league/status`);
             if (response.ok) {
                 const data = await response.json();
+                console.log('League status response:', data);
                 this.currentWeek = data.current_week || 0;
                 this.totalWeeks = data.total_weeks || 0;
+                console.log('Updated league status - Current Week:', this.currentWeek, 'Total Weeks:', this.totalWeeks);
                 this.updateWeekInfo();
             }
         } catch (error) {
@@ -440,19 +606,26 @@ class FootballLeagueApp {
         const tbody = document.getElementById('leagueTableBody');
         
         if (!standings || standings.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="no-data">No league data available</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="no-data">No league data available</td></tr>';
             return;
         }
+
+        // Debug logging
+        console.log('League table data received:', standings);
+        standings.forEach((team, index) => {
+            console.log(`Team ${index + 1}: ${team.team_name} - GoalsFor: ${team.goals_for}, GoalDiff: ${team.goal_difference}`);
+        });
 
         tbody.innerHTML = standings.map((team, index) => `
             <tr>
                 <td class="team-name">${index + 1}. ${team.team_name}</td>
-                <td class="points">${team.points}</td>
-                <td>${team.played}</td>
-                <td>${team.won}</td>
-                <td>${team.drawn}</td>
-                <td>${team.lost}</td>
-                <td class="goal-diff ${team.goal_diff >= 0 ? 'positive' : 'negative'}">${team.goal_diff >= 0 ? '+' : ''}${team.goal_diff}</td>
+                <td class="points">${team.points || 0}</td>
+                <td>${team.played || 0}</td>
+                <td>${team.won || 0}</td>
+                <td>${team.drawn || 0}</td>
+                <td>${team.lost || 0}</td>
+                <td class="goal-diff ${(team.goal_difference || 0) >= 0 ? 'positive' : 'negative'}">${(team.goal_difference || 0) >= 0 ? '+' : ''}${team.goal_difference || 0}</td>
+                <td>${team.goals_for || 0}</td>
             </tr>
         `).join('');
     }
@@ -474,22 +647,38 @@ class FootballLeagueApp {
             matchesByWeek[match.week].push(match);
         });
 
-        // Show the latest week's matches
-        const weeks = Object.keys(matchesByWeek).sort((a, b) => parseInt(b) - parseInt(a));
-        const latestWeek = weeks[0];
-        const latestMatches = matchesByWeek[latestWeek];
-
-        container.innerHTML = `
-            <div class="week-header">
-                <h3>${latestWeek}${this.getOrdinalSuffix(latestWeek)} Week Match Results</h3>
-            </div>
-            ${latestMatches.map(match => `
-                <div class="match">
-                    <div class="match-teams">${match.home_team} vs ${match.away_team}</div>
-                    <div class="match-score">${match.home_score} - ${match.away_score}</div>
+        // Sort weeks in ascending order (week 1, 2, 3, etc.)
+        const weeks = Object.keys(matchesByWeek).sort((a, b) => parseInt(a) - parseInt(b));
+        
+        // Build HTML for all weeks
+        let allWeeksHTML = '';
+        
+        weeks.forEach(week => {
+            const weekMatches = matchesByWeek[week];
+            const weekNumber = parseInt(week);
+            
+            allWeeksHTML += `
+                <div class="week-results">
+                    <div class="week-header">
+                        <h3>${weekNumber}${this.getOrdinalSuffix(weekNumber)} Week Results</h3>
+                    </div>
+                    ${weekMatches.map(match => `
+                        <div class="match">
+                            <div class="match-teams">${match.home_team} vs ${match.away_team}</div>
+                            <div class="match-score">${match.home_score} - ${match.away_score}</div>
+                        </div>
+                    `).join('')}
                 </div>
-            `).join('')}
-        `;
+            `;
+        });
+
+        container.innerHTML = allWeeksHTML;
+
+        // Update week info with match count
+        this.updateWeekInfoWithMatches(matches);
+
+        // Scroll to top of matches container to show latest results
+        container.scrollTop = 0;
 
         // Update predictions after showing matches
         this.updatePredictions(matches);
@@ -519,7 +708,6 @@ class FootballLeagueApp {
         }
 
         // Calculate predictions based on current standings
-        // This is a simple algorithm - you can make it more sophisticated
         const predictions = this.calculatePredictions(matches);
         
         container.innerHTML = predictions.map(pred => `
@@ -624,6 +812,42 @@ class FootballLeagueApp {
         document.getElementById('totalWeeks').textContent = `/ ${this.totalWeeks}`;
     }
 
+    updateWeekInfoWithMatches(matches) {
+        // Calculate current week from matches data
+        let currentWeek = 0;
+        if (matches && matches.length > 0) {
+            // Find the highest week number from matches
+            currentWeek = Math.max(...matches.map(match => match.week));
+            console.log('Calculated current week from matches:', currentWeek, 'Total matches:', matches.length);
+        } else {
+            // Fallback to stored current week if no matches
+            currentWeek = this.currentWeek || 0;
+            console.log('Using stored current week:', currentWeek);
+        }
+        
+        console.log('Updating week info - Current Week:', currentWeek, 'Total Weeks:', this.totalWeeks);
+        
+        document.getElementById('currentWeek').textContent = `Week: ${currentWeek}`;
+        document.getElementById('totalWeeks').textContent = `/ ${this.totalWeeks}`;
+        
+        // Add total matches info if we have matches
+        const weekInfoElement = document.querySelector('.week-info');
+        if (matches && matches.length > 0) {
+            const totalMatchesSpan = document.getElementById('totalMatches');
+            if (!totalMatchesSpan) {
+                const span = document.createElement('span');
+                span.id = 'totalMatches';
+                span.style.marginLeft = '10px';
+                span.style.color = '#666';
+                span.style.fontSize = '0.9em';
+                weekInfoElement.appendChild(span);
+            }
+            document.getElementById('totalMatches').textContent = `(${matches.length} matches played)`;
+        } else if (document.getElementById('totalMatches')) {
+            document.getElementById('totalMatches').textContent = '';
+        }
+    }
+
     updateStatus(message) {
         document.getElementById('statusMessage').textContent = message;
     }
@@ -668,6 +892,9 @@ class FootballLeagueApp {
             'nextWeekBtn': 'Next Week',
             'playAllBtn': 'Play All',
             'addTeamBtn': 'Add Team',
+
+            'loadTeamsBtn': 'Refresh Teams',
+            'clearTeamsBtn': 'Clear All Teams',
             'loadScheduleBtn': 'Load Schedule'
         };
         button.textContent = originalTexts[buttonId] || 'Button';
@@ -676,7 +903,10 @@ class FootballLeagueApp {
 
 // Initialize the app when the page loads
 document.addEventListener('DOMContentLoaded', () => {
-    window.footballApp = new FootballLeagueApp();
+    // Create global app instance
+    window.app = new FootballLeagueApp();
+    // Also keep the footballApp name for backward compatibility
+    window.footballApp = window.app;
     // Load teams on page load
-    window.footballApp.loadTeams();
+    window.app.loadTeams();
 }); 

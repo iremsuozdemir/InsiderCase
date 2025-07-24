@@ -20,13 +20,31 @@
         <!-- Team Management Section -->
         <div class="team-management">
             <h2>Team Management</h2>
+            
+            <!-- Add Single Team Form -->
             <div class="team-form">
-                <input type="text" id="teamName" placeholder="Team Name" class="form-input">
-                <input type="number" id="teamStrength" placeholder="Strength (1-100)" min="1" max="100" class="form-input">
-                <button id="addTeamBtn" class="btn btn-primary">Add Team</button>
+                <h3>Add Single Team</h3>
+                <div class="form-row">
+                    <input type="text" id="teamName" placeholder="Team Name" class="form-input">
+                    <input type="number" id="teamStrength" placeholder="Strength (1-100)" min="1" max="100" class="form-input">
+                    <button id="addTeamBtn" class="btn btn-primary">Add Team</button>
+                </div>
             </div>
-            <div class="teams-list" id="teamsList">
-                <div class="no-data">No teams available</div>
+            
+
+            
+            <!-- Team Actions -->
+            <div class="team-actions">
+                <button id="loadTeamsBtn" class="btn btn-info">Refresh Teams</button>
+                <button id="clearTeamsBtn" class="btn btn-danger">Clear All Teams</button>
+            </div>
+            
+            <!-- Teams List -->
+            <div class="teams-section">
+                <h3>Current Teams (<span id="teamCount">0</span>)</h3>
+                <div class="teams-list" id="teamsList">
+                    <div class="no-data">No teams available</div>
+                </div>
             </div>
         </div>
 
@@ -66,7 +84,7 @@
 
                     <!-- Match Results Section -->
                     <div class="section match-results-section">
-                        <h2>Match Results</h2>
+                        <h2>All Match Results</h2>
                         <div class="week-info">
                             <span id="currentWeek">Week: 0</span>
                             <span id="totalWeeks">/ 0</span>

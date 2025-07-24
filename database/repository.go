@@ -154,6 +154,7 @@ func (r *TeamRepository) GetLeagueTable(leagueID int) ([]models.TeamStats, error
 			return nil, fmt.Errorf("failed to scan team stats: %v", err)
 		}
 		stats.Position = position
+		
 		table = append(table, stats)
 		position++
 	}
@@ -679,10 +680,10 @@ func (r *TeamRepository) InitializeDatabase() error {
 
 	-- Insert sample teams (4 teams for smaller league)
 	INSERT INTO teams (name, strength) VALUES 
-		('Arsenal', 90),
-		('Chelsea', 85),
-		('Liverpool', 88),
-		('Manchester City', 92);
+    ('Arsenal', 70),
+    ('Chelsea', 85),
+    ('Liverpool', 75),
+    ('Manchester City', 92);
 	`
 	
 	_, err = DB.Exec(schemaSQL)
@@ -695,10 +696,171 @@ func (r *TeamRepository) AddTeam(name string, strength int) error {
 	return err
 }
 
+// AddTeamWithID adds a new team and returns the created team with ID
+func (r *TeamRepository) AddTeamWithID(name string, strength int) (*models.Team, error) {
+	var team models.Team
+	err := DB.QueryRow("INSERT INTO teams (name, strength) VALUES ($1, $2) RETURNING id, name, strength", 
+		name, strength).Scan(&team.ID, &team.Name, &team.Strength)
+	if err != nil {
+		return nil, fmt.Errorf("failed to add team: %v", err)
+	}
+	return &team, nil
+}
+
+// GetTeamByID retrieves a team by ID
+func (r *TeamRepository) GetTeamByID(id int) (*models.Team, error) {
+	var team models.Team
+	err := DB.QueryRow("SELECT id, name, strength FROM teams WHERE id = $1", id).Scan(&team.ID, &team.Name, &team.Strength)
+	if err != nil {
+		return nil, fmt.Errorf("team not found: %v", err)
+	}
+	return &team, nil
+}
+
+// GetTeamByName retrieves a team by name
+func (r *TeamRepository) GetTeamByName(name string) (*models.Team, error) {
+	var team models.Team
+	err := DB.QueryRow("SELECT id, name, strength FROM teams WHERE name = $1", name).Scan(&team.ID, &team.Name, &team.Strength)
+	if err != nil {
+		return nil, fmt.Errorf("team not found: %v", err)
+	}
+	return &team, nil
+}
+
+// UpdateTeam updates an existing team
+func (r *TeamRepository) UpdateTeam(id int, name string, strength int) error {
+	result, err := DB.Exec("UPDATE teams SET name = $1, strength = $2 WHERE id = $3", name, strength, id)
+	if err != nil {
+		return fmt.Errorf("failed to update team: %v", err)
+	}
+	
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %v", err)
+	}
+	
+	if rowsAffected == 0 {
+		return fmt.Errorf("team with ID %d not found", id)
+	}
+	
+	return nil
+}
+
+// DeleteTeam deletes a team by ID
+func (r *TeamRepository) DeleteTeam(id int) error {
+	// Start a transaction
+	tx, err := DB.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %v", err)
+	}
+	defer tx.Rollback() // Rollback if not committed
+	
+	// Delete related matches first (both home and away)
+	_, err = tx.Exec("DELETE FROM matches WHERE home_team_id = $1 OR away_team_id = $1", id)
+	if err != nil {
+		return fmt.Errorf("failed to delete matches: %v", err)
+	}
+	
+	// Delete team stats (this should cascade automatically, but being explicit)
+	_, err = tx.Exec("DELETE FROM team_stats WHERE team_id = $1", id)
+	if err != nil {
+		return fmt.Errorf("failed to delete team stats: %v", err)
+	}
+	
+	// Delete league_teams associations (this should cascade automatically, but being explicit)
+	_, err = tx.Exec("DELETE FROM league_teams WHERE team_id = $1", id)
+	if err != nil {
+		return fmt.Errorf("failed to delete league teams: %v", err)
+	}
+	
+	// Finally delete the team
+	result, err := tx.Exec("DELETE FROM teams WHERE id = $1", id)
+	if err != nil {
+		return fmt.Errorf("failed to delete team: %v", err)
+	}
+	
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %v", err)
+	}
+	
+	if rowsAffected == 0 {
+		return fmt.Errorf("team with ID %d not found", id)
+	}
+	
+	// Commit the transaction
+	if err = tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %v", err)
+	}
+	
+	return nil
+}
+
+// TeamExists checks if a team exists by name
+func (r *TeamRepository) TeamExists(name string) (bool, error) {
+	var exists bool
+	err := DB.QueryRow("SELECT EXISTS(SELECT 1 FROM teams WHERE name = $1)", name).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("failed to check team existence: %v", err)
+	}
+	return exists, nil
+}
+
+// GetTeamCount returns the total number of teams
+func (r *TeamRepository) GetTeamCount() (int, error) {
+	var count int
+	err := DB.QueryRow("SELECT COUNT(*) FROM teams").Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get team count: %v", err)
+	}
+	return count, nil
+}
+
 // ClearTeams removes all teams from the database
 func (r *TeamRepository) ClearTeams() error {
-	_, err := DB.Exec("DELETE FROM teams")
-	return err
+	// Start a transaction
+	tx, err := DB.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %v", err)
+	}
+	defer tx.Rollback() // Rollback if not committed
+	
+	// Delete all matches first
+	_, err = tx.Exec("DELETE FROM matches")
+	if err != nil {
+		return fmt.Errorf("failed to delete matches: %v", err)
+	}
+	
+	// Delete all team stats
+	_, err = tx.Exec("DELETE FROM team_stats")
+	if err != nil {
+		return fmt.Errorf("failed to delete team stats: %v", err)
+	}
+	
+	// Delete all league_teams associations
+	_, err = tx.Exec("DELETE FROM league_teams")
+	if err != nil {
+		return fmt.Errorf("failed to delete league teams: %v", err)
+	}
+	
+	// Delete all leagues
+	_, err = tx.Exec("DELETE FROM leagues")
+	if err != nil {
+		return fmt.Errorf("failed to delete leagues: %v", err)
+	}
+	
+	// Finally delete all teams
+	_, err = tx.Exec("DELETE FROM teams")
+	if err != nil {
+		return fmt.Errorf("failed to delete teams: %v", err)
+	}
+	
+	// Commit the transaction
+	if err = tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %v", err)
+	}
+	
+	return nil
 }
 
 // StoreFixtures stores the generated fixtures in the database

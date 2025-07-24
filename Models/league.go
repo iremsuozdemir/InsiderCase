@@ -38,3 +38,28 @@ type ErrorResponse struct {
 	Error   string `json:"error"`
 	Message string `json:"message"`
 }
+
+// New request/response models for team management
+type AddTeamRequest struct {
+	Name     string `json:"name" validate:"required,min=1,max=50"`
+	Strength int    `json:"strength" validate:"required,min=1,max=100"`
+}
+
+type UpdateTeamRequest struct {
+	Name     string `json:"name" validate:"required,min=1,max=50"`
+	Strength int    `json:"strength" validate:"required,min=1,max=100"`
+}
+
+type TeamResponse struct {
+	ID       int    `json:"id"`
+	Name     string `json:"name"`
+	Strength int    `json:"strength"`
+	Message  string `json:"message,omitempty"`
+}
+
+type TeamsResponse struct {
+	Teams   []Team `json:"teams"`
+	Count   int    `json:"count"`
+	Message string `json:"message,omitempty"`
+}
+

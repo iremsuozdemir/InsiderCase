@@ -1,8 +1,8 @@
-# 🏈 Football League Simulator Frontend
+# Football League Simulator Frontend
 
 A simple, modern web interface for the Football League Simulator API.
 
-## 🚀 How to Use
+##  How to Use
 
 ### 1. Start the Go Server
 ```bash
@@ -32,15 +32,15 @@ Open `index.html` in your web browser:
 #### **Clear League**
 - Click "Clear League" to reset everything and start fresh
 
-## 🎯 Features
+##  Features
 
-- ✅ **Real-time Updates**: See results immediately after playing matches
-- ✅ **Responsive Design**: Works on desktop and mobile devices
-- ✅ **Visual Feedback**: Loading states and success/error messages
-- ✅ **Clean Interface**: Modern grey theme with intuitive layout
-- ✅ **Database Integration**: All data persists in PostgreSQL
+-  **Real-time Updates**: See results immediately after playing matches
+-  **Responsive Design**: Works on desktop and mobile devices
+-  **Visual Feedback**: Loading states and success/error messages
+-  **Clean Interface**: Modern grey theme with intuitive layout
+-  **Database Integration**: All data persists in PostgreSQL
 
-## 🎨 Interface Layout
+##  Interface Layout
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -59,14 +59,14 @@ Open `index.html` in your web browser:
 └─────────────────────────────────────────────────────────┘
 ```
 
-## 🔧 Technical Details
+##  Technical Details
 
 - **Frontend**: HTML5, CSS3, Vanilla JavaScript (ES6+)
 - **API**: RESTful Go backend with PostgreSQL
 - **CORS**: Enabled for cross-origin requests
 - **Responsive**: Mobile-friendly design
 
-## 🐛 Troubleshooting
+##  Troubleshooting
 
 ### Frontend won't load data
 - Make sure your Go server is running on `http://localhost:8080`
@@ -82,12 +82,5 @@ Open `index.html` in your web browser:
 - Check that the database schema is properly set up
 - Verify connection settings in `database/connection.go`
 
-## 📱 Browser Compatibility
 
-- ✅ Chrome (recommended)
-- ✅ Firefox
-- ✅ Safari
-- ✅ Edge
-- ❌ Internet Explorer (not supported)
-
-**Enjoy simulating your football league!** ⚽🏆 
+**Enjoy simulating your football league!** 

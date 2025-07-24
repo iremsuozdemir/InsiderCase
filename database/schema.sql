@@ -61,9 +61,9 @@ CREATE TABLE IF NOT EXISTS team_stats (
 
 -- Insert sample teams (4 teams for smaller league)
 INSERT INTO teams (name, strength) VALUES 
-    ('Arsenal', 90),
+    ('Arsenal', 70),
     ('Chelsea', 85),
-    ('Liverpool', 88),
+    ('Liverpool', 75),
     ('Manchester City', 92)
 ON CONFLICT (name) DO NOTHING;
 
