@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "football-league-api",
 		"name": "Football League API",
-		"description": "API endpoints for the Football League Simulator",
+		"description": "Complete API collection for the Football League Simulator",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -12,19 +12,14 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:8080/health",
+					"raw": "http://localhost:8080/api/health",
 					"protocol": "http",
-					"host": [
-						"localhost"
-					],
+					"host": ["localhost"],
 					"port": "8080",
-					"path": [
-						"health"
-					]
+					"path": ["api", "health"]
 				},
 				"description": "Check if the server is running"
-			},
-			"response": []
+			}
 		},
 		{
 			"name": "Create League",
@@ -38,112 +33,17 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "[\n  {\n    \"name\": \"Arsenal\",\n    \"strength\": 90\n  },\n  {\n    \"name\": \"Chelsea\",\n    \"strength\": 85\n  },\n  {\n    \"name\": \"Liverpool\",\n    \"strength\": 88\n  },\n  {\n    \"name\": \"Manchester City\",\n    \"strength\": 92\n  },\n  {\n    \"name\": \"Manchester United\",\n    \"strength\": 82\n  },\n  {\n    \"name\": \"Tottenham\",\n    \"strength\": 80\n  }\n]"
+					"raw": "[]"
 				},
 				"url": {
 					"raw": "http://localhost:8080/api/league",
 					"protocol": "http",
-					"host": [
-						"localhost"
-					],
+					"host": ["localhost"],
 					"port": "8080",
-					"path": [
-						"api",
-						"league"
-					]
+					"path": ["api", "league"]
 				},
-				"description": "Create a new league with teams"
-			},
-			"response": []
-		},
-		{
-			"name": "Play Week",
-			"request": {
-				"method": "POST",
-				"header": [],
-				"url": {
-					"raw": "http://localhost:8080/api/league/play-week",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"api",
-						"league",
-						"play-week"
-					]
-				},
-				"description": "Play the next week of matches"
-			},
-			"response": []
-		},
-		{
-			"name": "Get League Table",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "http://localhost:8080/api/league/table",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"api",
-						"league",
-						"table"
-					]
-				},
-				"description": "Get the current league standings"
-			},
-			"response": []
-		},
-		{
-			"name": "Get All Matches",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "http://localhost:8080/api/league/matches",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"api",
-						"league",
-						"matches"
-					]
-				},
-				"description": "Get all matches in the league"
-			},
-			"response": []
-		},
-		{
-			"name": "Get Week Matches",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "http://localhost:8080/api/league/matches/1",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"api",
-						"league",
-						"matches",
-						"1"
-					]
-				},
-				"description": "Get matches for a specific week (replace '1' with week number)"
-			},
-			"response": []
+				"description": "Create a new league with default teams"
+			}
 		},
 		{
 			"name": "Get League Status",
@@ -153,19 +53,117 @@
 				"url": {
 					"raw": "http://localhost:8080/api/league/status",
 					"protocol": "http",
-					"host": [
-						"localhost"
-					],
+					"host": ["localhost"],
 					"port": "8080",
-					"path": [
-						"api",
-						"league",
-						"status"
-					]
+					"path": ["api", "league", "status"]
 				},
 				"description": "Get current league status and progress"
-			},
-			"response": []
+			}
+		},
+		{
+			"name": "Play Next Week",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/api/league/play-week",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "8080",
+					"path": ["api", "league", "play-week"]
+				},
+				"description": "Play the next week of matches"
+			}
+		},
+		{
+			"name": "Play All Remaining Weeks",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/api/league/play-all",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "8080",
+					"path": ["api", "league", "play-all"]
+				},
+				"description": "Play all remaining weeks automatically until league completion"
+			}
+		},
+		{
+			"name": "Get League Table",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/api/league/table",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "8080",
+					"path": ["api", "league", "table"]
+				},
+				"description": "Get current league standings table"
+			}
+		},
+		{
+			"name": "Get All Matches",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/api/league/matches",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "8080",
+					"path": ["api", "league", "matches"]
+				},
+				"description": "Get all match results"
+			}
+		},
+		{
+			"name": "Get Matches by Week",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/api/league/matches/week/1",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "8080",
+					"path": ["api", "league", "matches", "week", "1"]
+				},
+				"description": "Get matches for a specific week (change the week number in URL)"
+			}
+		},
+		{
+			"name": "Clear League",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/api/league/clear",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "8080",
+					"path": ["api", "league", "clear"]
+				},
+				"description": "Clear all league data and reset to initial state"
+			}
+		},
+		{
+			"name": "Get Championship Predictions",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/api/league/predictions",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "8080",
+					"path": ["api", "league", "predictions"]
+				},
+				"description": "Get championship predictions based on current league standings"
+			}
 		}
 	]
 } 

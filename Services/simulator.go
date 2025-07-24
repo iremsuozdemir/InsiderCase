@@ -7,7 +7,6 @@ import (
 	"math/rand"
 	"errors"
 	"sort"
-	"fmt"
 )
 
 // LeagueSimulator defines the core league operations
@@ -38,72 +37,193 @@ type TeamStats struct {
 	GoalDiff     int
 }
 
-func generateFixture(teams []models.Team) [][]models.Match {
+func GenerateFixture(teams []models.Team) [][]models.Match {
 	// Input validation
 	if len(teams) < 2 {
 		return [][]models.Match{} // Return empty fixtures for invalid input
 	}
 	
 	var fixtures [][]models.Match
-	var allMatches []models.Match
-
-	// Generate all possible matches (each team vs each other twice)
-	for i := 0; i < len(teams); i++ {
-		for j := i + 1; j < len(teams); j++ {
+	teamCount := len(teams)
+	isOdd := teamCount%2 != 0
+	
+	// For odd numbers, we need to handle scheduling differently
+	if isOdd {
+		// Create a round-robin schedule where each team plays every other team twice
+		// One team gets a bye each week
+		
+		// Calculate total weeks needed
+		totalWeeks := teamCount * (teamCount - 1) / ((teamCount - 1) / 2)
+		
+		// Create fixtures week by week
+		for week := 1; week <= totalWeeks; week++ {
+			var weekMatches []models.Match
+			teamsUsedThisWeek := make(map[string]bool)
+			
+			// Determine which team gets the bye this week
+			// Rotate through teams for bye
+			byeTeamIndex := (week - 1) % teamCount
+			byeTeam := teams[byeTeamIndex].Name
+			teamsUsedThisWeek[byeTeam] = true // Mark bye team as used
+			
+			// Create matches for the remaining teams
+			matchesThisWeek := 0
+			maxMatchesPerWeek := (teamCount - 1) / 2
+			
+			// Try to create matches between teams that haven't played this week
+			for i := 0; i < teamCount && matchesThisWeek < maxMatchesPerWeek; i++ {
+				for j := i + 1; j < teamCount && matchesThisWeek < maxMatchesPerWeek; j++ {
+					team1 := teams[i].Name
+					team2 := teams[j].Name
+					
+					// Skip if either team is the bye team or already used
+					if team1 == byeTeam || team2 == byeTeam || 
+					   teamsUsedThisWeek[team1] || teamsUsedThisWeek[team2] {
+						continue
+					}
+					
+					// Create match
+					match := models.Match{
+						HomeTeam: team1,
+						AwayTeam: team2,
+						Week:     week,
+					}
+					weekMatches = append(weekMatches, match)
+					teamsUsedThisWeek[team1] = true
+					teamsUsedThisWeek[team2] = true
+					matchesThisWeek++
+				}
+			}
+			
+			// Add week to fixtures if it has matches
+			if len(weekMatches) > 0 {
+				fixtures = append(fixtures, weekMatches)
+			}
+		}
+		
+		return fixtures
+	}
+	
+	// Even number of teams - use the original logic
+	var workingTeams []models.Team
+	workingTeams = teams
+	
+	// Create all possible matchups (each team vs each other twice)
+	var allMatchups [][]string
+	for i := 0; i < teamCount; i++ {
+		for j := i + 1; j < teamCount; j++ {
 			// First leg: team i home vs team j away
-			match1 := models.Match{
-				HomeTeam: teams[i].Name,
-				AwayTeam: teams[j].Name,
-			}
-			// Second leg: team j home vs team i away
-			match2 := models.Match{
-				HomeTeam: teams[j].Name,
-				AwayTeam: teams[i].Name,
-			}
-			allMatches = append(allMatches, match1, match2)
+			allMatchups = append(allMatchups, []string{workingTeams[i].Name, workingTeams[j].Name})
+			// Second leg: team j home vs team i away  
+			allMatchups = append(allMatchups, []string{workingTeams[j].Name, workingTeams[i].Name})
 		}
 	}
-
-	// Shuffle all matches randomly
-	for i := len(allMatches) - 1; i > 0; i-- {
-		j := rand.Intn(i + 1)
-		allMatches[i], allMatches[j] = allMatches[j], allMatches[i]
-	}
-
-	// Group matches into weeks (2 matches per week)
+	
+	// Now assign matchups to weeks ensuring no team plays twice in same week
 	weekNumber := 1
-	for index := 0; index < len(allMatches); index += 2 {
-		match1 := allMatches[index]
-		match2 := allMatches[index+1]
-
-		match1.Week = weekNumber
-		match2.Week = weekNumber
-
-		week := []models.Match{match1, match2}
-		fixtures = append(fixtures, week)
-
-		weekNumber++
+	matchesPerWeek := teamCount / 2
+	
+	for len(allMatchups) > 0 {
+		var week []models.Match
+		teamsUsedThisWeek := make(map[string]bool)
+		
+		// Try to fill this week with matches
+		for i := 0; i < len(allMatchups) && len(week) < matchesPerWeek; i++ {
+			homeTeam := allMatchups[i][0]
+			awayTeam := allMatchups[i][1]
+			
+			// Check if either team is already used this week
+			if !teamsUsedThisWeek[homeTeam] && !teamsUsedThisWeek[awayTeam] {
+				// Add this match to the week
+				match := models.Match{
+					HomeTeam: homeTeam,
+					AwayTeam: awayTeam,
+					Week:     weekNumber,
+				}
+				week = append(week, match)
+				teamsUsedThisWeek[homeTeam] = true
+				teamsUsedThisWeek[awayTeam] = true
+				
+				// Remove this matchup from the list
+				allMatchups = append(allMatchups[:i], allMatchups[i+1:]...)
+				i-- // Adjust index since we removed an element
+			}
+		}
+		
+		// Only add the week if it's complete
+		if len(week) == matchesPerWeek {
+			fixtures = append(fixtures, week)
+			weekNumber++
+		} else {
+			// If we can't complete a week, we have a problem with the algorithm
+			// This shouldn't happen with proper even number of teams
+			break
+		}
 	}
 	
 	return fixtures
 }
+
+
+
+
+
+
+
+// ValidateWeek ensures that each week has the correct number of teams playing
+func ValidateWeek(week []models.Match, totalTeams int) bool {
+	if len(week) != totalTeams/2 {
+		return false
+	}
+	
+	// Check that each team plays exactly once in this week
+	teamsInWeek := make(map[string]bool)
+	for _, match := range week {
+		if teamsInWeek[match.HomeTeam] || teamsInWeek[match.AwayTeam] {
+			return false // Team already playing in this week
+		}
+		teamsInWeek[match.HomeTeam] = true
+		teamsInWeek[match.AwayTeam] = true
+	}
+	
+	return len(teamsInWeek) == totalTeams
+}
+
 
 // CalculateTotalWeeks calculates the total number of weeks needed for a league
 func CalculateTotalWeeks(teamCount int) int {
 	if teamCount < 2 {
 		return 0
 	}
-	// Formula: n * (n-1) / 2 where n = number of teams
+	
+	// Handle odd number of teams
+	if teamCount%2 != 0 {
+		// For odd teams, we need to calculate weeks differently
+		// Each team needs to play every other team twice
+		// With odd teams, one team gets a bye each week
+		// Total matches = (n-1) * n (each team plays every other team twice)
+		// Matches per week = (n-1)/2 (one team gets bye)
+		totalMatches := teamCount * (teamCount - 1)
+		matchesPerWeek := (teamCount - 1) / 2
+		if matchesPerWeek == 0 {
+			matchesPerWeek = 1 // Ensure at least 1 match per week
+		}
+		return totalMatches / matchesPerWeek
+	}
+	
+	// Even number of teams - standard calculation
+	// Formula: n * (n-1) where n = number of teams
 	// Each team plays every other team twice (home and away)
 	totalMatches := teamCount * (teamCount - 1)
-	// 2 matches per week
-	return totalMatches / 2
+	// N/2 matches per week (where N = number of teams)
+	matchesPerWeek := teamCount / 2
+	return totalMatches / matchesPerWeek
 }
 
 func NewGenerateLeague(teams []models.Team)*GenerateLeague {
 	engine := GenerateLeague{
 		Teams: teams,
-		Fixtures: generateFixture(teams),
+		Fixtures: GenerateFixture(teams),
 		CurrentWeek: 0,
 		TeamStats: make(map[string]*TeamStats),
 	}
@@ -190,9 +310,10 @@ func PlayMatch(homeTeam, awayTeam models.Team, league *GenerateLeague) (models.M
 	
 	// Handle potential draw (small chance, more likely if teams are close in strength)
 	strengthDifference := math.Abs(homeStrength - awayStrength)
-	drawChance := 0.20 - (strengthDifference * 0.05) // 20% base, decreases with strength difference
+	// Base draw chance of 25%, exponentially decreases with strength difference
+	drawChance := 0.25 * math.Exp(-strengthDifference/50)
 	if drawChance < 0.05 {
-		drawChance = 0.05 // Minimum 5% chance
+		drawChance = 0.05 // Minimum 5%
 	}
 	
 	if rand.Float64() < drawChance {
@@ -210,6 +331,9 @@ func PlayMatch(homeTeam, awayTeam models.Team, league *GenerateLeague) (models.M
 		AwayScore: awayScore,
 	}
 	
+	// Update league table with the match result
+	league.updateLeagueTable(match)
+	
 	return match, nil
 }
 
@@ -217,9 +341,9 @@ func PlayMatch(homeTeam, awayTeam models.Team, league *GenerateLeague) (models.M
 func calculateTeamStrength(team models.Team, league *GenerateLeague, isHome bool) float64 {
 	baseStrength := float64(team.Strength)
 	
-	// Home advantage (10% boost)
+	// Home advantage (3% boost)
 	if isHome {
-		baseStrength *= 1.1
+		baseStrength *= 1.03
 	}
 	
 	// Form factor based on recent results
@@ -249,45 +373,35 @@ func calculateFormBonus(teamName string, league *GenerateLeague) float64 {
 
 // generateScore generates realistic score based on team strength and strength difference
 func generateScore(teamStrength, strengthDiff float64, isWinner bool) int {
-	baseGoals := int(teamStrength / 20) // Base goals from strength
-	
-	if isWinner {
-		// Winner gets bonus goals based on strength difference
-		bonusGoals := int(strengthDiff / 10)
-		if bonusGoals < 0 {
-			bonusGoals = 0
-		}
-		totalGoals := baseGoals + bonusGoals + rand.Intn(3) // Add some randomness
-		
-		// Ensure realistic score range
-		if totalGoals < 1 {
-			totalGoals = 1
-		} else if totalGoals > 5 {
-			totalGoals = 5
-		}
-		return totalGoals
-	} else {
-		// Loser gets fewer goals
-		penaltyGoals := int(strengthDiff / 15)
-		if penaltyGoals < 0 {
-			penaltyGoals = 0
-		}
-		totalGoals := baseGoals - penaltyGoals + rand.Intn(2)
-		
-		// Ensure realistic score range
-		if totalGoals < 0 {
-			totalGoals = 0
-		} else if totalGoals > 3 {
-			totalGoals = 3
-		}
-		return totalGoals
-	}
+    // Base from team strength
+    baseGoals := int(teamStrength / 32)
+    
+    // Exponential impact of strength difference
+    // Small differences have minimal impact, large differences have big impact
+    diffMultiplier := 1.0 + (strengthDiff / 100) * 0.5
+    if diffMultiplier < 0.3 {
+        diffMultiplier = 0.3 // Minimum 30% of base
+    }
+    
+    baseGoals = int(float64(baseGoals) * diffMultiplier)
+    
+    // Add randomness
+    totalGoals := baseGoals + rand.Intn(2)
+    
+    // Range check
+    if totalGoals < 0 {
+        totalGoals = 0
+    } else if totalGoals > 5 {
+        totalGoals = 5
+    }
+    
+    return totalGoals
 }
 
 // generateDrawScore generates score for a draw
 func generateDrawScore(avgStrength float64) int {
 	baseGoals := int(avgStrength / 25)
-	randomGoals := rand.Intn(3)
+	randomGoals := rand.Intn(1)
 	totalGoals := baseGoals + randomGoals
 	
 	// Ensure realistic draw score

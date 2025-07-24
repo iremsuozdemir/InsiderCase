@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Football League Simulator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏈 Football League Simulator</h1>
+            <div class="controls">
+                <button id="initDbBtn" class="btn btn-secondary">Initialize DB</button>
+                <button id="createLeagueBtn" class="btn btn-primary">Create League</button>
+                <button id="clearLeagueBtn" class="btn btn-danger">Clear League</button>
+            </div>
+        </header>
+
+        <!-- Team Management Section -->
+        <div class="team-management">
+            <h2>Team Management</h2>
+            <div class="team-form">
+                <input type="text" id="teamName" placeholder="Team Name" class="form-input">
+                <input type="number" id="teamStrength" placeholder="Strength (1-100)" min="1" max="100" class="form-input">
+                <button id="addTeamBtn" class="btn btn-primary">Add Team</button>
+            </div>
+            <div class="teams-list" id="teamsList">
+                <div class="no-data">No teams available</div>
+            </div>
+        </div>
+
+        <main>
+            <div class="dashboard">
+                <!-- Left Panel: League Table and Match Results -->
+                <div class="left-panel">
+                    <!-- League Table Section -->
+                    <div class="section league-table-section">
+                        <h2>League Table</h2>
+                        <div class="table-container">
+                            <table id="leagueTable">
+                                <thead>
+                                    <tr>
+                                        <th>Teams</th>
+                                        <th>PTS</th>
+                                        <th>P</th>
+                                        <th>W</th>
+                                        <th>D</th>
+                                        <th>L</th>
+                                        <th>GD</th>
+                                        <th>GF</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="leagueTableBody">
+                                    <tr>
+                                        <td colspan="7" class="no-data">No league data available</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="action-buttons">
+                            <button id="playAllBtn" class="btn btn-success">Play All</button>
+                            <button id="nextWeekBtn" class="btn btn-primary">Next Week</button>
+                        </div>
+                    </div>
+
+                    <!-- Match Results Section -->
+                    <div class="section match-results-section">
+                        <h2>Match Results</h2>
+                        <div class="week-info">
+                            <span id="currentWeek">Week: 0</span>
+                            <span id="totalWeeks">/ 0</span>
+                        </div>
+                        <div class="matches-container" id="matchesContainer">
+                            <div class="no-data">No matches played yet</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Panel: Predictions -->
+                <div class="right-panel">
+                    <div class="section predictions-section">
+                        <h2>Championship Predictions</h2>
+                        <div class="predictions-container" id="predictionsContainer">
+                            <div class="no-data">No predictions available</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <div class="status-bar">
+            <span id="statusMessage">Ready to start</span>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html> 

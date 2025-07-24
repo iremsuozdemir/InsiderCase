@@ -59,15 +59,11 @@ CREATE TABLE IF NOT EXISTS team_stats (
     UNIQUE(league_id, team_id)
 );
 
--- Insert sample teams (Premier League teams)
+-- Insert sample teams (4 teams for smaller league)
 INSERT INTO teams (name, strength) VALUES 
     ('Arsenal', 90),
     ('Chelsea', 85),
     ('Liverpool', 88),
-    ('Manchester City', 92),
-    ('Manchester United', 82),
-    ('Tottenham', 80),
-    ('Newcastle United', 78),
-    ('Brighton', 75)
+    ('Manchester City', 92)
 ON CONFLICT (name) DO NOTHING;
 

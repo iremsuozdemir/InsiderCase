@@ -1,0 +1,73 @@
+🏈 FOOTBALL LEAGUE API - ALL REQUESTS 🏈
+===============================================
+
+BASE URL: http://localhost:8080
+
+1. HEALTH CHECK
+---------------
+GET /api/health
+Description: Check if server is running
+Expected Response: {"status": "ok"}
+
+2. CREATE LEAGUE
+----------------
+POST /api/league
+Headers: Content-Type: application/json
+Body: []
+Description: Create a new league with default teams
+Expected Response: {"message": "League created successfully", "teams": [...]}
+
+3. GET LEAGUE STATUS
+--------------------
+GET /api/league/status
+Description: Get current league status and progress
+Expected Response: {"current_week": 1, "total_weeks": 28, "is_completed": false}
+
+4. PLAY NEXT WEEK
+-----------------
+POST /api/league/play-week
+Description: Play the next week of matches
+Expected Response: {"message": "Week 1 played successfully", "matches": [...]}
+
+5. PLAY ALL REMAINING WEEKS
+---------------------------
+POST /api/league/play-all
+Description: Play all remaining weeks automatically
+Expected Response: {"message": "All weeks played successfully", "total_matches": 28}
+
+6. GET LEAGUE TABLE
+-------------------
+GET /api/league/table
+Description: Get current league standings
+Expected Response: {"standings": [{"position": 1, "team": "...", "points": 15, ...}]}
+
+7. GET ALL MATCHES
+------------------
+GET /api/league/matches
+Description: Get all match results
+Expected Response: {"matches": [{"week": 1, "home_team": "...", "away_team": "...", "score": "2-1"}]}
+
+8. GET MATCHES BY WEEK
+----------------------
+GET /api/league/matches/week/{week_number}
+Description: Get matches for specific week
+Example: GET /api/league/matches/week/1
+Expected Response: {"matches": [{"week": 1, "home_team": "...", "away_team": "...", "score": "2-1"}]}
+
+9. CLEAR LEAGUE
+---------------
+DELETE /api/league/clear
+Description: Clear all league data and reset
+Expected Response: {"message": "League cleared successfully"}
+
+===============================================
+TESTING SEQUENCE:
+1. Health Check
+2. Create League
+3. Get Status
+4. Play Week (or Play All)
+5. Get Table
+6. Get Matches
+7. Clear League (optional)
+
+=============================================== 
